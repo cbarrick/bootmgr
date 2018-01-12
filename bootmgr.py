@@ -123,9 +123,10 @@ class BootMgr:
     def execute(self, cmd):
         '''Executes an efibootmgr command.
         '''
-        cmd = [shlex.quote(arg) for arg in cmd]
-        cmd_str = " ".join(cmd)
-        logger.info(f'calling: {cmd_str}')
+        # Shell escaping only applies to logging
+        log_cmd = ' '.join(shlex.quote(arg) for arg in cmd)
+        logger.info(f'calling: {log_cmd}')
+
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8', check=True)
         state = proc.stdout
         self.state = parse_state(state)
