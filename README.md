@@ -3,7 +3,7 @@
 A configuration framework for EFI boot entries.
 
 
-### What?
+## What?
 
 > The Unified Extensible Firmware Interface (EFI or UEFI for short) is a new
 > model for the interface between operating systems and firmware. It provides a
@@ -20,7 +20,7 @@ bootmgr bridges this gap by defining a sensible configuration file format for EF
 [ArchWiki]: https://wiki.archlinux.org/index.php/Unified_Extensible_Firmware_Interface
 
 
-### Configuration
+## Configuration
 
 Boot entries are specified in a file `bootmgr.toml` in the root of your EFI system partition, typically `/boot` or `/boot/efi`. The syntax of this file is [TOML], an INI-like configuration file format with a simple, formal spec. Here's an example:
 
@@ -53,19 +53,19 @@ This format is quite flexible. For example `nvidia-drm = {modeset=1}` is equival
 [TOML]: https://github.com/toml-lang/toml
 
 
-### Usage
+## Usage
 
 **TODO**: Figure out what I'm doing for the CLI.
 
 
-### Installation
+## Installation
 
 bootmgr is just a simple Python script. Simply place it somewhere on your path, and optionally remove the `.py` extension. I've provided a PKGBUILD for Arch Linux that does exactly that.
 
 **TODO**: Create the PKGBUILD.
 
 
-### License
+## License
 
 MIT License
 
