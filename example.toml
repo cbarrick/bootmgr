@@ -1,0 +1,12 @@
+['Arch Linux']
+loader = '/vmlinuz-linux'
+root = '/dev/sdb2'
+initrd = '/initramfs-linux.img'
+rw = true
+nvidia-drm = {modeset=1}
+
+['Arch Linux (fallback)']
+loader = '/vmlinuz-linux'
+root = '/dev/sdb2'
+initrd = '/initramfs-linux-fallback.img'
+rw = true
