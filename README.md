@@ -92,7 +92,7 @@ Installation
 
 bootmgr is a single Python script. You can use it as-is by copying it to your PATH (optionally without the `.py` extension).
 
-For package maintainers, I have supplied a simple makefile which copies the file to `/usr/local/bin` and marks it executable. The installation prefix can be overridden with the DESTDIR environment variable.
+For package maintainers, I have supplied a simple makefile which copies the file to `/usr/local/bin` and marks it executable. The installation prefix can be overridden with the DESTDIR and PREFIX environment variables.
 
 I have also provided a PKGBUILD script for packaging on Arch Linux.
 

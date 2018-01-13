@@ -1,10 +1,11 @@
 .DEFAULT: all
 .PHONY: all install clean
 
-DESTDIR ?= /usr/local
+DESTDIR ?= /
+PREFIX  ?= /usr
 
 
-all: build/bin/bootmgr
+all: build/$(PREFIX)/bin/bootmgr
 
 
 install: all
@@ -15,7 +16,7 @@ clean:
 	rm -rf build
 
 
-build/bin/bootmgr: bootmgr.py
-	mkdir -p build/bin
-	cp bootmgr.py build/bin/bootmgr
-	chmod +x build/bin/bootmgr
+build/$(PREFIX)/bin/bootmgr: bootmgr.py
+	mkdir -p build/$(PREFIX)/bin
+	cp bootmgr.py build/$(PREFIX)/bin/bootmgr
+	chmod +x build/$(PREFIX)/bin/bootmgr
