@@ -167,6 +167,7 @@ class BootMgr:
     def sync(self):
         '''Syncronizes the boot entries with the config.
         '''
+        logger.info('Syncing boot entries...')
         labels = set(self.state) | set(self.cfg)
         for label in labels:
             if label in self.cfg:
@@ -187,34 +188,47 @@ class BootMgr:
             '--loader', loader,
             '--unicode', dump(params),
         ]
+
         if label in self.state:
+            logger.info(f"Updating entry '{label}'")
             cmd += ['--bootnum', self.state[label], '--active']
+
         else:
+            logger.info(f"Creating entry '{label}'")
             cmd += ['--create']
+
         self.execute(cmd)
         return self
 
-    def delete(self, label):
+    def delete(self, label, full_delete=None):
         '''Deletes the boot entry with the given label.
         '''
-        if self.full_delete:
+        if full_delete is None:
+            full_delete = self.full_delete
+
+        if full_delete:
+            logger.info(f"Deleting entry '{label}'")
             cmd = [
                 'efibootmgr',
                 '--bootnum', self.state[label],
                 '--delete-bootnum',
             ]
+
         else:
+            logger.info(f"Deactivating entry '{label}'")
             cmd = [
                 'efibootmgr',
                 '--bootnum', self.state[label],
                 '--inactive',
             ]
+
         self.execute(cmd)
         return self
 
     def fix_order(self):
         '''Sets the boot order to match the config.
         '''
+        logger.info('Setting boot order')
         order = ','.join(self.state[label] for label in self.cfg)
         cmd = ['efibootmgr', '--bootorder', order]
         self.execute(cmd)
@@ -244,8 +258,7 @@ class BootMgr:
 
 def main(path=None, disk=None, part=None, delete=False, verbose=False):
     log_level = 'INFO' if verbose else 'WARN'
-    log_format = '{levelname} {message}'
-    logging.basicConfig(format=log_format, style='{', level=log_level)
+    logging.basicConfig(format='{message}', style='{', level=log_level)
 
     try:
         if path is None: path = find_config()
