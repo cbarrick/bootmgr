@@ -163,10 +163,9 @@ class BootMgr:
             '--label', label,
             '--loader', loader,
             '--unicode', dump(params),
-            '--active',
         ]
         if label in self.state:
-            cmd += ['--bootnum', self.state[label]]
+            cmd += ['--bootnum', self.state[label], '--active']
         else:
             cmd += ['--create']
         return self.execute(cmd)
