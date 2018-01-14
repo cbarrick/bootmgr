@@ -3,8 +3,9 @@
 import argparse
 import logging
 import re
+import sys
+
 from collections import OrderedDict
-from copy import copy
 from subprocess import run, PIPE
 from pathlib import Path
 
@@ -96,17 +97,35 @@ def _dump(params, prefix=''):
             yield f'{prefix}{k}={v}'
 
 
-def parse_state(state):
+def parse_efibootmgr(proc):
     '''Parse the output of `efibootmgr`.
     '''
     entries = OrderedDict()
-    entry_pat = re.compile('Boot([0-9a-fA-F]{4})\*? (.+)')
-    for line in state.split('\n'):
-        match = entry_pat.match(line)
-        if match:
-            entry = match[1]
-            label = match[2]
-            entries[label] = entry
+    order = []
+
+    patterns = {
+        'order': re.compile('BootOrder: ((.{4},?)*)'),
+        'entry': re.compile('Boot(.{4})[* ] (.+)'),
+    }
+
+    for line in proc.stdout.split('\n'):
+        for kind, pattern in patterns.items():
+            m = pattern.match(line)
+
+            if m and kind == 'order':
+                order = m[1].split(',')
+
+            elif m and kind == 'entry':
+                entry = m[1]
+                label = m[2]
+                entries[label] = entry
+
+    for bootnum in order:
+        for label, entry in entries.items():
+            if entry == bootnum:
+                entries.move_to_end(label)
+                break
+
     return entries
 
 
@@ -125,10 +144,81 @@ class BootMgr:
         self.device = device
         self.partition = partition
         self.full_delete = full_delete
-        self.cfg = toml.load(path, OrderedDict)
+        self.cfg = OrderedDict()
         self.state = OrderedDict()
 
-        self.check_state()
+        self.read_config(path)
+        self.read_state()
+
+    def read_config(self, path):
+        '''Read boot entries from a file and merge with the current config.
+        '''
+        cfg = toml.load(path, OrderedDict)
+        self.cfg.update(cfg)
+        return self.cfg
+
+    def read_state(self):
+        '''Read the current boot entries from the EFI variables.
+        '''
+        cmd = ['efibootmgr']
+        self.execute(cmd)
+        return self.state
+
+    def sync(self):
+        '''Syncronizes the boot entries with the config.
+        '''
+        labels = set(self.state) | set(self.cfg)
+        for label in labels:
+            if label in self.cfg:
+                self.update(label)
+            else:
+                self.delete(label)
+        self.fix_order()
+        return self
+
+    def update(self, label):
+        '''Updates the boot entry of the given label to match the config.
+        '''
+        params = self.cfg[label].copy()
+        loader = params.pop('loader')
+        cmd = [
+            'efibootmgr',
+            '--label', label,
+            '--loader', loader,
+            '--unicode', dump(params),
+        ]
+        if label in self.state:
+            cmd += ['--bootnum', self.state[label], '--active']
+        else:
+            cmd += ['--create']
+        self.execute(cmd)
+        return self
+
+    def delete(self, label):
+        '''Deletes the boot entry with the given label.
+        '''
+        if self.full_delete:
+            cmd = [
+                'efibootmgr',
+                '--bootnum', self.state[label],
+                '--delete-bootnum',
+            ]
+        else:
+            cmd = [
+                'efibootmgr',
+                '--bootnum', self.state[label],
+                '--inactive',
+            ]
+        self.execute(cmd)
+        return self
+
+    def fix_order(self):
+        '''Sets the boot order to match the config.
+        '''
+        order = ','.join(self.state[label] for label in self.cfg)
+        cmd = ['efibootmgr', '--bootorder', order]
+        self.execute(cmd)
+        return self
 
     def execute(self, cmd):
         '''Executes an efibootmgr command.
@@ -148,68 +238,8 @@ class BootMgr:
         if proc.returncode != 0:
             raise RuntimeError(proc.stderr)
 
-        state = proc.stdout
-        self.state = parse_state(state)
+        self.state = parse_efibootmgr(proc)
         return proc
-
-    def check_state(self):
-        '''Checks the current state of the boot entries.
-        '''
-        cmd = ['efibootmgr']
-        return self.execute(cmd)
-
-    def update(self, label):
-        '''Updates the boot entry of the given label to match the config.
-        '''
-        params = copy(self.cfg[label])
-        loader = params.pop('loader')
-        cmd = [
-            'efibootmgr',
-            '--label', label,
-            '--loader', loader,
-            '--unicode', dump(params),
-        ]
-        if label in self.state:
-            cmd += ['--bootnum', self.state[label], '--active']
-        else:
-            cmd += ['--create']
-        return self.execute(cmd)
-
-    def delete(self, label):
-        '''Deletes the boot entry with the given label.
-        '''
-        if self.full_delete:
-            cmd = [
-                'efibootmgr',
-                '--bootnum', self.state[label],
-                '--delete-bootnum',
-            ]
-        else:
-            cmd = [
-                'efibootmgr',
-                '--bootnum', self.state[label],
-                '--inactive',
-            ]
-        return self.execute(cmd)
-
-    def fix_order(self):
-        '''Sets the boot order to match the config.
-        '''
-        order = ','.join(self.state[label] for label in self.cfg)
-        cmd = ['efibootmgr', '--bootorder', order]
-        return self.execute(cmd)
-
-    def sync(self):
-        '''Syncronizes the boot entries with the config.
-        '''
-        labels = set(self.state.keys()) | set(self.cfg.keys())
-        for label in labels:
-            if label in self.cfg:
-                self.update(label)
-            else:
-                self.delete(label)
-        self.fix_order()
-        return self.check_state()
 
 
 def main(path=None, disk=None, part=None, delete=False, verbose=False):
@@ -221,13 +251,11 @@ def main(path=None, disk=None, part=None, delete=False, verbose=False):
         if path is None: path = find_config()
         bootmgr = BootMgr(path, device=disk, partition=part, full_delete=delete)
         bootmgr.sync()
-        proc = bootmgr.check_state()
-        print(proc.stdout, end='')
-        exit(0)
+        sys.exit(0)
 
     except Exception as e:
         logger.error(str(e))
-        exit(1)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
