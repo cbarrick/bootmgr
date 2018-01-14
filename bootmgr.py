@@ -16,6 +16,12 @@ __version__ = 'bootmgr v1.0.0-dev'
 logger = logging.getLogger('bootmgr')
 
 
+class BootMgrError(Exception):
+    '''The error class for this module.
+    '''
+    pass
+
+
 def first_number(s):
     '''Returns the index of the first number in a string.
     '''
@@ -58,7 +64,7 @@ def find_device(path):
             device = dev
     idx = first_number(device)
     if idx < 1:
-        raise RuntimeError('Could not identify the partition')
+        raise BootMgrError('Could not identify the partition')
     return device[:idx], device[idx:]
 
 
@@ -73,7 +79,7 @@ def find_config():
     for p in paths:
         if Path(p).exists():
             return p
-    raise RuntimeError('Could not find bootmgr.toml')
+    raise BootMgrError('Could not find bootmgr.toml')
 
 
 def dump(params):
@@ -250,7 +256,9 @@ class BootMgr:
 
         # Wrap errors from the subprocess for consistency.
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr)
+            msg = proc.stderr
+            msg = msg[:-1]  # remove trailing newline
+            raise BootMgrError(msg)
 
         self.state = parse_efibootmgr(proc)
         return proc
@@ -266,7 +274,7 @@ def main(path=None, disk=None, part=None, delete=False, verbose=False):
         bootmgr.sync()
         sys.exit(0)
 
-    except Exception as e:
+    except BootMgrError as e:
         logger.error(str(e))
         sys.exit(1)
 
