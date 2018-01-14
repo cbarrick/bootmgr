@@ -3,9 +3,9 @@
 import argparse
 import logging
 import re
-import subprocess
 from collections import OrderedDict
 from copy import copy
+from subprocess import run, PIPE
 from pathlib import Path
 
 import toml
@@ -142,7 +142,12 @@ class BootMgr:
 
         # All efibootmgr commands print the new state to stdout.
         logger.debug(f'calling {cmd}')
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8', check=True)
+        proc = run(cmd, stdout=PIPE, stderr=PIPE, encoding='utf-8')
+
+        # Wrap errors from the subprocess for consistency.
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr)
+
         state = proc.stdout
         self.state = parse_state(state)
         return proc
