@@ -22,5 +22,6 @@ pkgver() {
 
 package() {
 	cd "${srcdir}/bootmgr"
+	install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 	make install DESTDIR="${pkgdir}" PREFIX="/usr"
 }
