@@ -65,9 +65,9 @@ def find_config():
     '''Search for the `bootmgr.toml`.
     '''
     paths = {
-        '/boot/efi/bootmgr.cfg',
-        '/boot/bootmgr.cfg',
-        '/bootmgr.cfg',
+        '/boot/efi/bootmgr.toml',
+        '/boot/bootmgr.toml',
+        '/bootmgr.toml',
     }
     for p in paths:
         if Path(p).exists():
