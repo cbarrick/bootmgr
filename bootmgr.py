@@ -230,13 +230,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False, description='Sync EFI boot entries with bootmgr.toml')
 
     group = parser.add_argument_group('Global Options')
-    group.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
+    group.add_argument('-h', '--help', action='help', help='Print this help message and exit.')
     group.add_argument('-V', '--version', action='version', version=__version__, help='Print the version and exit.')
     group.add_argument('-v', '--verbose', action='store_true', help='Log actions to stderr.')
     group.add_argument('-D', '--delete', action='store_true', help='Delete entries which are not listed in the config.')
     group.add_argument('-d', '--disk', nargs=1, help='Override the disk containing the loaders.')
     group.add_argument('-p', '--part', nargs=1, help='Override the partition containing the loaders.')
-    group.add_argument('-c', '--conf', nargs=1, help='Override the path to the config.')
+    group.add_argument('path', nargs='?', metavar='PATH', help='Override the path to the config.')
 
     args = parser.parse_args()
     args = vars(args)

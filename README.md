@@ -72,18 +72,18 @@ Usage
 --------------------------------------------------
 
 ```
-usage: bootmgr [-h] [-V] [-v] [-D] [-d DISK] [-p PART] [-c CONF]
+usage: bootmgr [-h] [-V] [-v] [-D] [-d DISK] [-p PART] [PATH]
 
 Sync EFI boot entries with bootmgr.toml
 
 Global Options:
-  -h, --help            Show this help message and exit.
+  -h, --help            Print this help message and exit.
   -V, --version         Print the version and exit.
   -v, --verbose         Log actions to stderr.
   -D, --delete          Delete entries which are not listed in the config.
   -d DISK, --disk DISK  Override the disk containing the loaders.
   -p PART, --part PART  Override the partition containing the loaders.
-  -c CONF, --conf CONF  Override the path to the config.
+  PATH                  Override the path to the config.
 ```
 
 
