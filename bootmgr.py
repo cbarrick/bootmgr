@@ -222,7 +222,7 @@ def main(path=None, disk=None, part=None, delete=False, verbose=False):
         bootmgr = BootMgr(path, device=disk, partition=part, full_delete=delete)
         bootmgr.sync()
         proc = bootmgr.check_state()
-        print(proc.stdout)
+        print(proc.stdout, end='')
         exit(0)
 
     except Exception as e:
