@@ -177,7 +177,8 @@ class BootMgr:
 
         # Delete known entries so that they can be recreated.
         # Unknown entries are either deactivated or deleted.
-        for label in self.state:
+        # The order is reversed for consistency with the create step.
+        for label in reversed(self.state):
             if label in self.config:
                 self.delete(label)
             elif self.full_delete:
@@ -186,7 +187,8 @@ class BootMgr:
                 self.deactivate(label)
 
         # Recreate the entries from the config.
-        for label in self.config:
+        # The default boot order is LIFO, so we create entries in reverse.
+        for label in reversed(self.config):
             self.create(label)
 
         return self
