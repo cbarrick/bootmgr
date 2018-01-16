@@ -153,17 +153,17 @@ class BootMgr:
         self.cfg = OrderedDict()
         self.state = OrderedDict()
 
-        self.read_config(path)
-        self.read_state()
+        self.load_config(path)
+        self.load_state()
 
-    def read_config(self, path):
+    def load_config(self, path):
         '''Read boot entries from a file and merge with the current config.
         '''
         cfg = toml.load(path, OrderedDict)
         self.cfg.update(cfg)
         return self.cfg
 
-    def read_state(self):
+    def load_state(self):
         '''Read the current boot entries from the EFI variables.
         '''
         cmd = ['efibootmgr']
@@ -174,69 +174,72 @@ class BootMgr:
         '''Syncronizes the boot entries with the config.
         '''
         logger.info('Syncing boot entries...')
-        labels = set(self.state) | set(self.cfg)
-        for label in labels:
+
+        # Delete known entries so that they can be recreated.
+        # Unknown entries are either deactivated or deleted.
+        for label in self.state:
             if label in self.cfg:
-                self.update(label)
-            else:
                 self.delete(label)
-        self.fix_order()
+            elif self.full_delete:
+                self.delete(label)
+            else:
+                self.deactivate(label)
+
+        # Recreate the entries from the config.
+        for label in self.cfg:
+            self.create(label)
+
         return self
 
-    def update(self, label):
-        '''Updates the boot entry of the given label to match the config.
+    def create(self, label):
+        '''Creates the boot entry with the given label from match the config.
         '''
         params = self.cfg[label].copy()
         loader = params.pop('loader')
         cmd = [
             'efibootmgr',
+            '--create',
             '--label', label,
             '--loader', loader,
             '--unicode', dump(params),
         ]
-
-        if label in self.state:
-            logger.info(f"Updating entry '{label}'")
-            cmd += ['--bootnum', self.state[label], '--active']
-
-        else:
-            logger.info(f"Creating entry '{label}'")
-            cmd += ['--create']
-
+        logger.info(f"Creating entry '{label}'")
         self.execute(cmd)
         return self
 
-    def delete(self, label, full_delete=None):
+    def delete(self, label):
         '''Deletes the boot entry with the given label.
         '''
-        if full_delete is None:
-            full_delete = self.full_delete
-
-        if full_delete:
-            logger.info(f"Deleting entry '{label}'")
-            cmd = [
-                'efibootmgr',
-                '--bootnum', self.state[label],
-                '--delete-bootnum',
-            ]
-
-        else:
-            logger.info(f"Deactivating entry '{label}'")
-            cmd = [
-                'efibootmgr',
-                '--bootnum', self.state[label],
-                '--inactive',
-            ]
-
+        logger.info(f"Deleting entry '{label}'")
+        cmd = [
+            'efibootmgr',
+            '--bootnum', self.state[label],
+            '--delete-bootnum',
+        ]
         self.execute(cmd)
         return self
 
-    def fix_order(self):
-        '''Sets the boot order to match the config.
+    def deactivate(self, label):
+        '''Deactivates the boot entry with the given label.
         '''
-        logger.info('Setting boot order')
-        order = ','.join(self.state[label] for label in self.cfg)
-        cmd = ['efibootmgr', '--bootorder', order]
+        logger.info(f"Deactivating entry '{label}'")
+        cmd = [
+            'efibootmgr',
+            '--bootnum', self.state[label],
+            '--inactive',
+        ]
+        self.execute(cmd)
+        return self
+
+    def activate(self, label):
+        '''Activates the boot entry with the given label.
+        '''
+        logger.info(f"Activating entry '{label}'")
+        cmd = [
+            'efibootmgr',
+            '--bootnum', self.state[label],
+            '--active',
+        ]
         self.execute(cmd)
         return self
 
