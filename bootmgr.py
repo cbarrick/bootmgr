@@ -150,8 +150,8 @@ class BootMgr:
         self.device = device
         self.partition = partition
         self.full_delete = full_delete
-        self.cfg = OrderedDict()
-        self.state = OrderedDict()
+        self.config = OrderedDict()  # maps labels to parameters for configured entries
+        self.state = OrderedDict()   # maps labels to boot nums for existing entries
 
         self.load_config(path)
         self.load_state()
@@ -159,9 +159,9 @@ class BootMgr:
     def load_config(self, path):
         '''Read boot entries from a file and merge with the current config.
         '''
-        cfg = toml.load(path, OrderedDict)
-        self.cfg.update(cfg)
-        return self.cfg
+        config = toml.load(path, OrderedDict)
+        self.config.update(config)
+        return self.config
 
     def load_state(self):
         '''Read the current boot entries from the EFI variables.
@@ -178,7 +178,7 @@ class BootMgr:
         # Delete known entries so that they can be recreated.
         # Unknown entries are either deactivated or deleted.
         for label in self.state:
-            if label in self.cfg:
+            if label in self.config:
                 self.delete(label)
             elif self.full_delete:
                 self.delete(label)
@@ -186,7 +186,7 @@ class BootMgr:
                 self.deactivate(label)
 
         # Recreate the entries from the config.
-        for label in self.cfg:
+        for label in self.config:
             self.create(label)
 
         return self
@@ -194,7 +194,8 @@ class BootMgr:
     def create(self, label):
         '''Creates the boot entry with the given label from match the config.
         '''
-        params = self.cfg[label].copy()
+        logger.info(f"Creating entry '{label}'")
+        params = self.config[label].copy()
         loader = params.pop('loader')
         cmd = [
             'efibootmgr',
@@ -203,7 +204,6 @@ class BootMgr:
             '--loader', loader,
             '--unicode', dump(params),
         ]
-        logger.info(f"Creating entry '{label}'")
         self.execute(cmd)
         return self
 
@@ -211,9 +211,10 @@ class BootMgr:
         '''Deletes the boot entry with the given label.
         '''
         logger.info(f"Deleting entry '{label}'")
+        bootnum = self.state[label]
         cmd = [
             'efibootmgr',
-            '--bootnum', self.state[label],
+            '--bootnum', bootnum,
             '--delete-bootnum',
         ]
         self.execute(cmd)
@@ -223,9 +224,10 @@ class BootMgr:
         '''Deactivates the boot entry with the given label.
         '''
         logger.info(f"Deactivating entry '{label}'")
+        bootnum = self.state[label]
         cmd = [
             'efibootmgr',
-            '--bootnum', self.state[label],
+            '--bootnum', bootnum,
             '--inactive',
         ]
         self.execute(cmd)
@@ -235,9 +237,10 @@ class BootMgr:
         '''Activates the boot entry with the given label.
         '''
         logger.info(f"Activating entry '{label}'")
+        bootnum = self.state[label]
         cmd = [
             'efibootmgr',
-            '--bootnum', self.state[label],
+            '--bootnum', bootnum,
             '--active',
         ]
         self.execute(cmd)
