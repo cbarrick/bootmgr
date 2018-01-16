@@ -4,6 +4,12 @@ bootmgr
 A configuration framework for EFI boot entries.
 
 
+Status
+--------------------------------------------------
+
+This project is in early development, but is already useful. I currently use it on an Arch box instead of a bootloader. Once I give it enough time to stabilize for my use, I'll push it to the AUR.
+
+
 What?
 --------------------------------------------------
 
@@ -92,11 +98,9 @@ Installation
 
 bootmgr is a single Python script. You can use it as-is by copying it to your PATH (optionally without the `.py` extension).
 
-For package maintainers, I have supplied a simple makefile which copies the file to `/usr/local/bin` and marks it executable. The installation prefix can be overridden with the DESTDIR and PREFIX environment variables.
+For package maintainers, I have supplied a simple makefile which copies the file to `/usr/bin` and marks it executable. The installation prefix can be overridden with the DESTDIR and PREFIX environment variables.
 
 I have also provided a PKGBUILD script for packaging on Arch Linux.
-
-**TODO**: Create the PKGBUILD.
 
 
 ### Dependencies
